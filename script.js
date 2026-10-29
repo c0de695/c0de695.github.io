@@ -14,21 +14,25 @@
   }
   function applyTheme(theme) {
     if (theme === 'light') {
-      document.documentElement.removeAttribute('data-theme');
       document.body.setAttribute('data-theme', 'light');
     } else {
       document.body.removeAttribute('data-theme');
     }
     localStorage.setItem(STORAGE_KEY, theme);
-    themeBtns.forEach(btn => {
-      btn.querySelector('.theme-icon')?.textContent = theme === 'light' ? '☀️' : '🌙';
-      btn.textContent = theme === 'light' ? '☀️' : '🌙';
+    const icon = theme === 'light' ? '☀️' : '🌙';
+    themeBtns.forEach(function (btn) {
+      var iconEl = btn.querySelector('.theme-icon');
+      if (iconEl) {
+        iconEl.textContent = icon;
+      } else {
+        btn.textContent = icon;
+      }
     });
   }
   applyTheme(getInitialTheme());
-  themeBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const cur = document.body.getAttribute('data-theme');
+  themeBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var cur = document.body.getAttribute('data-theme');
       applyTheme(cur === 'light' ? 'dark' : 'light');
     });
   });
