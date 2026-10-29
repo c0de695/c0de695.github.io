@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>纸间札记 · Paper & Ink</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Lora:ital,wght@0,400;0,600;1,400&family=Noto+Serif+SC:wght@400;600;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- 顶部导航 -->
+  <header class="masthead">
+    <div class="masthead__inner">
+      <div class="masthead__brand">
+        <span class="brand-mark">❦</span>
+        <h1 class="brand-name">纸间札记</h1>
+        <span class="brand-sub">Paper &amp; Ink</span>
+      </div>
+      <nav class="masthead__nav">
+        <a href="#" class="nav-link active">首页</a>
+        <a href="#articles" class="nav-link">文章</a>
+        <a href="#about" class="nav-link">关于</a>
+        <a href="#" class="nav-link nav-link--toggle" id="themeToggle" title="切换主题">◐</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- 英雄区 -->
+  <section class="hero">
+    <div class="hero__issue">第 零 期 · 创刊号</div>
+    <div class="hero__headline">
+      <h2 class="headline-main">
+        在屏幕与<span class="headline-accent">纸张</span>之间<br>
+        留住一些<span class="headline-accent">慢</span>的东西
+      </h2>
+      <p class="headline-sub">—— 写给每一个仍然相信文字有重量的人</p>
+    </div>
+    <div class="hero__divider">
+      <span class="divider-dot">✦</span>
+    </div>
+    <div class="hero__meta">
+      <span class="meta-item">2026 年 10 月</span>
+      <span class="meta-sep">·</span>
+      <span class="meta-item">创刊特辑</span>
+    </div>
+  </section>
+
+  <!-- 精选文章 -->
+  <section class="featured" id="articles">
+    <article class="featured-card featured-card--primary">
+      <div class="card-category">随笔 · Essay</div>
+      <h3 class="card-title"><a href="articles/sample-1.html">为什么我们还需要纸质书？</a></h3>
+      <p class="card-excerpt">在电子阅读器几乎占领所有通勤时间的今天，我仍然会在深夜打开一本厚厚的实体书——不是因为怀旧，而是因为屏幕的光总是让字变得太轻……</p>
+      <div class="card-meta">
+        <span>10 月 28 日</span>
+        <span class="meta-dot">·</span>
+        <span>6 分钟阅读</span>
+      </div>
+    </article>
+
+    <article class="featured-card featured-card--secondary">
+      <div class="card-category">技术 · Tech</div>
+      <h3 class="card-title"><a href="articles/sample-2.html">用 GitHub Pages 搭博客：五分钟与零元</a></h3>
+      <p class="card-excerpt">不需要服务器，不需要域名费用，甚至不需要懂命令行——如果你愿意花一个下午，就能拥有一个属于自己的写作空间。</p>
+      <div class="card-meta">
+        <span>10 月 29 日</span>
+        <span class="meta-dot">·</span>
+        <span>4 分钟阅读</span>
+      </div>
+    </article>
+
+    <article class="featured-card featured-card--tertiary">
+      <div class="card-category">旅行 · Travel</div>
+      <h3 class="card-title"><a href="articles/sample-3.html">京都的雨，与一家旧书店</a></h3>
+      <p class="card-excerpt">三年前去京都，在哲学之道的尽头躲雨，误入一家只有三坪的旧书店。老板不会说英文，我不会说日文，但我们一起听了半小时的雨打芭蕉。</p>
+      <div class="card-meta">
+        <span>10 月 25 日</span>
+        <span class="meta-dot">·</span>
+        <span>8 分钟阅读</span>
+      </div>
+    </article>
+  </section>
+
+  <!-- 文章列表 -->
+  <section class="archive">
+    <div class="archive__header">
+      <h3 class="archive__title">往期文章</h3>
+      <div class="archive__rule"></div>
+    </div>
+
+    <ul class="archive__list">
+      <li class="archive__item">
+        <time class="archive__date" datetime="2026-10-20">10 · 20</time>
+        <div class="archive__body">
+          <span class="archive__category">生活</span>
+          <a href="#" class="archive__link">晨间仪式：一杯手冲与二十分钟的空白</a>
+        </div>
+      </li>
+      <li class="archive__item">
+        <time class="archive__date" datetime="2026-10-12">10 · 12</time>
+        <div class="archive__body">
+          <span class="archive__category">阅读</span>
+          <a href="#" class="archive__link">重读《瓦尔登湖》：梭罗教我的不是隐居，而是专注</a>
+        </div>
+      </li>
+      <li class="archive__item">
+        <time class="archive__date" datetime="2026-10-03">10 · 03</time>
+        <div class="archive__body">
+          <span class="archive__category">技术</span>
+          <a href="#" class="archive__link">静态网站的复兴：为什么 2026 年我又爱上了 HTML</a>
+        </div>
+      </li>
+      <li class="archive__item">
+        <time class="archive__date" datetime="2026-09-21">09 · 21</time>
+        <div class="archive__body">
+          <span class="archive__category">音乐</span>
+          <a href="#" class="archive__link">黑胶唱片入门：从一张二手的 Miles Davis 开始</a>
+        </div>
+      </li>
+      <li class="archive__item">
+        <time class="archive__date" datetime="2026-09-08">09 · 08</time>
+        <div class="archive__body">
+          <span class="archive__category">随笔</span>
+          <a href="#" class="archive__link">关于"认真生活"这件事的五条注脚</a>
+        </div>
+      </li>
+      <li class="archive__item">
+        <time class="archive__date" datetime="2026-08-30">08 · 30</time>
+        <div class="archive__body">
+          <span class="archive__category">设计</span>
+          <a href="#" class="archive__link">衬线的尊严：为什么我在所有项目中都坚持使用衬线字体</a>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- 关于 -->
+  <section class="about" id="about">
+    <div class="about__inner">
+      <div class="about__rule"></div>
+      <h3 class="about__label">关于本站</h3>
+      <p class="about__text">
+        「纸间札记」是一个关于阅读、写作、技术与生活的个人博客。
+        没有广告，没有追更提醒，没有算法推荐——只有一些我想认真写下来的东西，
+        写给同样愿意停下来读一读的你。
+      </p>
+      <p class="about__text about__text--fine">
+        本站由纯 HTML 构建，使用 GitHub Pages 免费托管。如果你也想拥有一个这样的小角落，
+        <a href="https://pages.github.com/" target="_blank" rel="noopener">这里</a> 是起点。
+      </p>
+    </div>
+  </section>
+
+  <!-- 页脚 -->
+  <footer class="colophon">
+    <div class="colophon__inner">
+      <div class="colophon__mark">❦</div>
+      <p class="colophon__text">
+        © 2026 纸间札记 · 以手写心，以字载道
+      </p>
+      <p class="colophon__fine">
+        Built with HTML &amp; CSS · Hosted on GitHub Pages
+      </p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
