@@ -164,15 +164,20 @@
   <script>
     /* ---------- Game Router ---------- */
     (function() {
-      const picker = document.getElementById('gamePicker');
-      const container = document.getElementById('gameContainer');
+      var picker = document.getElementById('gamePicker');
+      var container = document.getElementById('gameContainer');
+      var snakeKeyHandler = null;
 
-      picker.addEventListener('click', e => {
-        const card = e.target.closest('.game-card[data-game]');
-        if (!card) return;
-        const game = card.dataset.game;
-        if (game === 'snake') container.innerHTML = snakeHTML(); initSnake();
-        else if (game === 'ttt') container.innerHTML = tttHTML(); initTTT();
+      picker.addEventListener('click', function(e) {
+        var card = e.target;
+        while (card && !card.getAttribute('data-game')) {
+          card = card.parentElement;
+          if (card === picker || !card) break;
+        }
+        if (!card || !card.getAttribute('data-game')) return;
+        var game = card.getAttribute('data-game');
+        if (game === 'snake') { container.innerHTML = snakeHTML(); initSnake(); }
+        else if (game === 'ttt') { container.innerHTML = tttHTML(); initTTT(); }
         else return;
         container.style.display = 'block';
         container.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -180,82 +185,88 @@
 
       // ===== Snake =====
       function snakeHTML() {
-        return `
-          <div class="game-header">
-            <div class="game-title">🐍 贪吃蛇</div>
-            <div class="game-stats">
-              分数 <span id="snakeScore">0</span> · 最高 <span id="snakeHigh">0</span>
-            </div>
-          </div>
-          <div class="snake-wrap">
-            <canvas id="snakeCanvas" width="400" height="400"></canvas>
-            <div class="snake-controls">
-              <button class="btn btn--primary" id="snakeStart">▶ 开始 / 重开</button>
-              <button class="btn btn--ghost" id="snakePause">⏸ 暂停</button>
-            </div>
-            <div class="snake-hint">方向键 / WASD 控制 · 空格暂停</div>
-          </div>
-        `;
+        return '<div class="game-header">' +
+          '<div class="game-title">🐍 贪吃蛇</div>' +
+          '<div class="game-stats">' +
+            '分数 <span id="snakeScore">0</span> · 最高 <span id="snakeHigh">0</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="snake-wrap">' +
+          '<canvas id="snakeCanvas" width="400" height="400"></canvas>' +
+          '<div class="snake-controls">' +
+            '<button class="btn btn--primary" id="snakeStart">▶ 开始 / 重开</button>' +
+            '<button class="btn btn--ghost" id="snakePause">⏸ 暂停</button>' +
+          '</div>' +
+          '<div class="snake-hint">方向键 / WASD 控制 · 空格暂停</div>' +
+        '</div>';
       }
 
       function initSnake() {
-        const canvas = document.getElementById('snakeCanvas');
-        const ctx = canvas.getContext('2d');
-        const scoreEl = document.getElementById('snakeScore');
-        const highEl = document.getElementById('snakeHigh');
-        const startBtn = document.getElementById('snakeStart');
-        const pauseBtn = document.getElementById('snakePause');
+        var canvas = document.getElementById('snakeCanvas');
+        var ctx = canvas.getContext('2d');
+        var scoreEl = document.getElementById('snakeScore');
+        var highEl = document.getElementById('snakeHigh');
+        var startBtn = document.getElementById('snakeStart');
+        var pauseBtn = document.getElementById('snakePause');
 
-        const GRID = 20;
-        const CELLS = canvas.width / GRID;
-        let snake, dir, nextDir, food, score, running, paused, timer;
-        let high = parseInt(localStorage.getItem('snake-high') || '0');
+        var GRID = 20;
+        var CELLS = canvas.width / GRID;
+        var snake, dir, nextDir, food, score, running, paused, timer;
+        var high = parseInt(localStorage.getItem('snake-high') || '0', 10);
         highEl.textContent = high;
 
         function reset() {
           snake = [{x:10,y:10},{x:9,y:10},{x:8,y:10}];
           dir = {x:1,y:0}; nextDir = {x:1,y:0};
-          score = 0; scoreEl.textContent = 0;
+          score = 0; scoreEl.textContent = '0';
           placeFood();
           draw();
         }
         function placeFood() {
-          do { food = {x:Math.floor(Math.random()*CELLS), y:Math.floor(Math.random()*CELLS)}; }
-          while (snake.some(s => s.x===food.x && s.y===food.y));
+          var ok = false;
+          while (!ok) {
+            food = {x: Math.floor(Math.random()*CELLS), y: Math.floor(Math.random()*CELLS)};
+            ok = true;
+            for (var i=0; i<snake.length; i++) {
+              if (snake[i].x === food.x && snake[i].y === food.y) { ok = false; break; }
+            }
+          }
         }
         function step() {
           dir = nextDir;
-          const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
-          if (head.x < 0 || head.x >= CELLS || head.y < 0 || head.y >= CELLS ||
-              snake.some(s => s.x===head.x && s.y===head.y)) {
+          var head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
+          if (head.x < 0 || head.x >= CELLS || head.y < 0 || head.y >= CELLS) {
             gameOver(); return;
           }
+          for (var i=0; i<snake.length; i++) {
+            if (snake[i].x === head.x && snake[i].y === head.y) { gameOver(); return; }
+          }
           snake.unshift(head);
-          if (head.x === food.x && head.y === food.y) { score++; scoreEl.textContent = score; placeFood(); }
-          else snake.pop();
+          if (head.x === food.x && head.y === food.y) {
+            score++; scoreEl.textContent = score; placeFood();
+          } else {
+            snake.pop();
+          }
           draw();
         }
         function draw() {
           ctx.fillStyle = '#0d0917';
-          ctx.fillRect(0,0,canvas.width, canvas.height);
-          // grid
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
           ctx.strokeStyle = 'rgba(255,255,255,.03)';
-          for (let i=0;i<CELLS;i++) {
-            ctx.beginPath(); ctx.moveTo(i*GRID,0); ctx.lineTo(i*GRID,canvas.height); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(0,i*GRID); ctx.lineTo(canvas.width,i*GRID); ctx.stroke();
+          ctx.lineWidth = 1;
+          for (var i=0; i<=CELLS; i++) {
+            ctx.beginPath(); ctx.moveTo(i*GRID+0.5, 0); ctx.lineTo(i*GRID+0.5, canvas.height); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, i*GRID+0.5); ctx.lineTo(canvas.width, i*GRID+0.5); ctx.stroke();
           }
-          // food
           ctx.fillStyle = '#ff6b9d';
           ctx.shadowColor = '#ff6b9d'; ctx.shadowBlur = 10;
           ctx.beginPath(); ctx.arc(food.x*GRID+GRID/2, food.y*GRID+GRID/2, GRID/2-3, 0, Math.PI*2); ctx.fill();
           ctx.shadowBlur = 0;
-          // snake
-          snake.forEach((s,i) => {
-            const hue = 140 - i * 2;
-            ctx.fillStyle = i === 0 ? '#6ee7b7' : `hsl(${hue}, 60%, 50%)`;
+          for (var j=0; j<snake.length; j++) {
+            var s = snake[j];
+            ctx.fillStyle = (j === 0) ? '#6ee7b7' : '#4ade80';
             ctx.fillRect(s.x*GRID+1, s.y*GRID+1, GRID-2, GRID-2);
-          });
-          // head glow
+          }
           ctx.fillStyle = '#6ee7b7';
           ctx.shadowColor = '#6ee7b7'; ctx.shadowBlur = 15;
           ctx.fillRect(snake[0].x*GRID+1, snake[0].y*GRID+1, GRID-2, GRID-2);
@@ -264,85 +275,103 @@
         function gameOver() {
           running = false; clearInterval(timer);
           if (score > high) { high = score; localStorage.setItem('snake-high', high); highEl.textContent = high; }
-          // overlay
-          ctx.fillStyle = 'rgba(0,0,0,.7)';
-          ctx.fillRect(0,0,canvas.width, canvas.height);
+          ctx.fillStyle = 'rgba(0,0,0,.75)';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
           ctx.fillStyle = '#ff6b9d';
           ctx.font = 'bold 28px Space Grotesk, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('游戏结束', canvas.width/2, canvas.height/2 - 10);
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText('游戏结束', canvas.width/2, canvas.height/2 - 15);
           ctx.fillStyle = '#e8e0d4';
           ctx.font = '16px Space Grotesk';
-          ctx.fillText(`得分: ${score}`, canvas.width/2, canvas.height/2 + 20);
+          ctx.fillText('得分: ' + score, canvas.width/2, canvas.height/2 + 15);
         }
         function start() {
-          reset(); running = true; paused = false; clearInterval(timer);
+          reset(); running = true; paused = false;
+          clearInterval(timer);
           timer = setInterval(step, 120);
         }
-
-        startBtn.onclick = start;
-        pauseBtn.onclick = () => {
+        function togglePause() {
           if (!running) return;
           paused = !paused;
           if (paused) { clearInterval(timer); pauseBtn.textContent = '▶ 继续'; }
           else { timer = setInterval(step, 120); pauseBtn.textContent = '⏸ 暂停'; }
-        };
+        }
 
-        document.onkeydown = e => {
-          if (!running || paused) { if (e.key === ' ' && running) pauseBtn.onclick(); return; }
-          const k = e.key.toLowerCase();
-          if ((k==='arrowup'||k==='w') && dir.y!==1) nextDir = {x:0,y:-1};
-          else if ((k==='arrowdown'||k==='s') && dir.y!==-1) nextDir = {x:0,y:1};
-          else if ((k==='arrowleft'||k==='a') && dir.x!==1) nextDir = {x:-1,y:0};
-          else if ((k==='arrowright'||k==='d') && dir.x!==-1) nextDir = {x:1,y:0};
-          else if (k===' ') pauseBtn.onclick();
+        startBtn.onclick = start;
+        pauseBtn.onclick = togglePause;
+
+        // remove old handler if any
+        if (snakeKeyHandler) document.removeEventListener('keydown', snakeKeyHandler);
+        snakeKeyHandler = function (e) {
+          var k = e.key.toLowerCase();
+          if (k === ' ') {
+            e.preventDefault();
+            if (running) togglePause();
+            return;
+          }
+          if (!running || paused) {
+            return;
+          }
+          if ((k === 'arrowup' || k === 'w') && dir.y !== 1) {
+            nextDir = {x:0, y:-1};
+          } else if ((k === 'arrowdown' || k === 's') && dir.y !== -1) {
+            nextDir = {x:0, y:1};
+          } else if ((k === 'arrowleft' || k === 'a') && dir.x !== 1) {
+            nextDir = {x:-1, y:0};
+          } else if ((k === 'arrowright' || k === 'd') && dir.x !== -1) {
+            nextDir = {x:1, y:0};
+          }
         };
+        document.addEventListener('keydown', snakeKeyHandler);
+
         reset();
       }
 
       // ===== Tic Tac Toe =====
       function tttHTML() {
-        return `
-          <div class="game-header">
-            <div class="game-title">⭕ 井字棋</div>
-            <div class="game-stats">
-              <span style="color:var(--neon-blue)">X</span> · <span style="color:var(--neon-pink)">O</span> · <span style="color:var(--text-faint)">平局</span>
-            </div>
-          </div>
-          <div class="ttt-wrap">
-            <div class="ttt-modes">
-              <button class="btn btn--ghost" data-mode="pvp">双人对战</button>
-              <button class="btn btn--primary" data-mode="pve">vs 电脑</button>
-            </div>
-            <div class="ttt-status" id="tttStatus">轮到 X</div>
-            <div class="ttt-board" id="tttBoard">
-              ${Array(9).fill('<div class="ttt-cell"></div>').join('')}
-            </div>
-            <button class="btn btn--ghost" id="tttReset">🔄 再来一局</button>
-          </div>
-        `;
+        var cells = '';
+        for (var k=0; k<9; k++) cells += '<div class="ttt-cell"></div>';
+        return '<div class="game-header">' +
+          '<div class="game-title">⭕ 井字棋</div>' +
+          '<div class="game-stats">' +
+            '<span style="color:var(--neon-blue)">X</span> · <span style="color:var(--neon-pink)">O</span> · <span style="color:var(--text-faint)">平局</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="ttt-wrap">' +
+          '<div class="ttt-modes">' +
+            '<button class="btn btn--ghost" data-mode="pvp">双人对战</button>' +
+            '<button class="btn btn--primary" data-mode="pve">vs 电脑</button>' +
+          '</div>' +
+          '<div class="ttt-status" id="tttStatus">轮到 X</div>' +
+          '<div class="ttt-board" id="tttBoard">' + cells + '</div>' +
+          '<button class="btn btn--ghost" id="tttReset">🔄 再来一局</button>' +
+        '</div>';
       }
 
       function initTTT() {
-        const boardEl = document.getElementById('tttBoard');
-        const statusEl = document.getElementById('tttStatus');
-        const resetBtn = document.getElementById('tttReset');
-        const cells = boardEl.querySelectorAll('.ttt-cell');
-        let board, current, gameOver, mode = 'pve';
+        var boardEl = document.getElementById('tttBoard');
+        var statusEl = document.getElementById('tttStatus');
+        var resetBtn = document.getElementById('tttReset');
+        var cells = boardEl.querySelectorAll('.ttt-cell');
+        var board, current, gameOver, mode = 'pve';
 
-        const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+        var wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
 
         function reset() {
-          board = Array(9).fill('');
+          board = ['','','','','','','','',''];
           current = 'X'; gameOver = false;
-          cells.forEach(c => { c.textContent=''; c.className='ttt-cell'; });
+          for (var i=0; i<cells.length; i++) {
+            cells[i].textContent = '';
+            cells[i].className = 'ttt-cell';
+          }
           statusEl.textContent = '轮到 X';
           statusEl.className = 'ttt-status x';
         }
 
         function checkWin(player) {
-          for (const [a,b,c] of wins) {
-            if (board[a]===player && board[b]===player && board[c]===player) return [a,b,c];
+          for (var i=0; i<wins.length; i++) {
+            var w = wins[i];
+            if (board[w[0]] === player && board[w[1]] === player && board[w[2]] === player) return w;
           }
           return null;
         }
@@ -350,25 +379,28 @@
         function makeMove(i) {
           if (board[i] || gameOver) return;
           board[i] = current;
-          const cell = cells[i];
-          cell.textContent = current; cell.classList.add(current.toLowerCase());
-          const win = checkWin(current);
+          var cell = cells[i];
+          cell.textContent = current;
+          if (current === 'X') cell.classList.add('x'); else cell.classList.add('o');
+          var win = checkWin(current);
           if (win) {
             gameOver = true;
-            win.forEach(idx => cells[idx].classList.add('win'));
-            statusEl.textContent = `🎉 ${current} 赢了！`;
-            statusEl.className = `ttt-status ${current.toLowerCase()}`;
+            for (var j=0; j<win.length; j++) cells[win[j]].classList.add('win');
+            statusEl.textContent = '🎉 ' + current + ' 赢了！';
+            statusEl.className = 'ttt-status ' + current.toLowerCase();
             return;
           }
-          if (!board.includes('')) {
+          var full = true;
+          for (var k=0; k<9; k++) if (!board[k]) { full = false; break; }
+          if (full) {
             gameOver = true;
             statusEl.textContent = '🤝 平局';
             statusEl.className = 'ttt-status draw';
             return;
           }
           current = current === 'X' ? 'O' : 'X';
-          statusEl.textContent = `轮到 ${current}`;
-          statusEl.className = `ttt-status ${current.toLowerCase()}`;
+          statusEl.textContent = '轮到 ' + current;
+          statusEl.className = 'ttt-status ' + current.toLowerCase();
           if (mode === 'pve' && current === 'O' && !gameOver) {
             setTimeout(aiMove, 400);
           }
@@ -376,35 +408,48 @@
 
         function aiMove() {
           if (gameOver) return;
-          // 简单 AI：优先赢 → 阻止 → 中心 → 角落 → 随机
-          let move = null;
-          // 赢
-          for (let i=0;i<9;i++) { if (!board[i]) { board[i]='O'; if (checkWin('O')) { board[i]=''; move=i; break; } board[i]=''; } }
-          // 阻止
-          if (move === null) for (let i=0;i<9;i++) { if (!board[i]) { board[i]='X'; if (checkWin('X')) { board[i]=''; move=i; break; } board[i]=''; } }
+          var move = null;
+          // try to win
+          for (var i=0; i<9; i++) {
+            if (!board[i]) { board[i]='O'; if (checkWin('O')) { board[i]=''; move=i; break; } board[i]=''; }
+          }
+          // block
+          if (move === null) {
+            for (var i=0; i<9; i++) {
+              if (!board[i]) { board[i]='X'; if (checkWin('X')) { board[i]=''; move=i; break; } board[i]=''; }
+            }
+          }
           if (move === null && !board[4]) move = 4;
           if (move === null) {
-            const corners = [0,2,6,8].filter(i=>!board[i]);
-            if (corners.length) move = corners[Math.floor(Math.random()*corners.length)];
+            var corners = [0,2,6,8];
+            var avail = [];
+            for (var c=0; c<corners.length; c++) if (!board[corners[c]]) avail.push(corners[c]);
+            if (avail.length) move = avail[Math.floor(Math.random()*avail.length)];
           }
           if (move === null) {
-            const empty = board.map((v,i)=>v?null:i).filter(v=>v!==null);
-            move = empty[Math.floor(Math.random()*empty.length)];
+            var allEmpty = [];
+            for (var e=0; e<9; e++) if (!board[e]) allEmpty.push(e);
+            if (allEmpty.length) move = allEmpty[Math.floor(Math.random()*allEmpty.length)];
           }
-          makeMove(move);
+          if (move !== null) makeMove(move);
         }
 
-        cells.forEach((c,i) => c.onclick = () => makeMove(i));
+        for (var idx=0; idx<cells.length; idx++) {
+          (function(i) { cells[i].onclick = function() { makeMove(i); }; })(idx);
+        }
         resetBtn.onclick = reset;
-        document.querySelectorAll('.ttt-modes button').forEach(b => {
-          b.onclick = () => {
-            mode = b.dataset.mode;
-            document.querySelectorAll('.ttt-modes button').forEach(x => {
-              x.className = x.dataset.mode === mode ? 'btn btn--primary' : 'btn btn--ghost';
-            });
-            reset();
-          };
-        });
+        var modeBtns = document.querySelectorAll('.ttt-modes button');
+        for (var b=0; b<modeBtns.length; b++) {
+          modeBtns[b].onclick = (function(btn) {
+            return function () {
+              mode = btn.getAttribute('data-mode');
+              for (var x=0; x<modeBtns.length; x++) {
+                modeBtns[x].className = (modeBtns[x].getAttribute('data-mode') === mode) ? 'btn btn--primary' : 'btn btn--ghost';
+              }
+              reset();
+            };
+          })(modeBtns[b]);
+        }
         reset();
       }
     })();
