@@ -1,98 +1,116 @@
 /* ============================================
-   纸间札记 · Paper & Ink
-   Interactions & Enhancements
+   纸间札记 v2 · Shared Scripts
    ============================================ */
 
 (function () {
   'use strict';
 
   // ---------- Theme Toggle ----------
-  const themeToggle = document.getElementById('themeToggle');
-  const STORAGE_KEY = 'paperink-theme';
+  const STORAGE_KEY = 'paperink-v2-theme';
+  const themeBtns = document.querySelectorAll('#themeToggle, #themeToggle2');
 
   function getInitialTheme() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return saved;
-    // Prefer light by default for editorial feel
-    return 'light';
+    return localStorage.getItem(STORAGE_KEY) || 'dark';
   }
-
   function applyTheme(theme) {
-    if (theme === 'dark') {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    } else {
+    if (theme === 'light') {
       document.documentElement.removeAttribute('data-theme');
+      document.body.setAttribute('data-theme', 'light');
+    } else {
+      document.body.removeAttribute('data-theme');
     }
     localStorage.setItem(STORAGE_KEY, theme);
-    if (themeToggle) {
-      themeToggle.textContent = theme === 'dark' ? '☀' : '◐';
-      themeToggle.title = theme === 'dark' ? '切换到日间模式' : '切换到夜间模式';
-    }
+    themeBtns.forEach(btn => {
+      btn.querySelector('.theme-icon')?.textContent = theme === 'light' ? '☀️' : '🌙';
+      btn.textContent = theme === 'light' ? '☀️' : '🌙';
+    });
   }
-
   applyTheme(getInitialTheme());
+  themeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cur = document.body.getAttribute('data-theme');
+      applyTheme(cur === 'light' ? 'dark' : 'light');
+    });
+  });
 
-  if (themeToggle) {
-    themeToggle.addEventListener('click', function () {
-      const current = document.documentElement.getAttribute('data-theme');
-      applyTheme(current === 'dark' ? 'light' : 'dark');
+  // ---------- Sidebar (mobile) ----------
+  const sidebar = document.getElementById('sidebar');
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  const sidebarClose = document.getElementById('sidebarClose');
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+  if (sidebarToggle) {
+    sidebarToggle.addEventListener('click', () => {
+      sidebar?.classList.toggle('open');
+      sidebarOverlay?.classList.toggle('show');
+    });
+  }
+  if (sidebarClose) {
+    sidebarClose.addEventListener('click', () => {
+      sidebar?.classList.remove('open');
+      sidebarOverlay?.classList.remove('show');
+    });
+  }
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', () => {
+      sidebar?.classList.remove('open');
+      sidebarOverlay?.classList.remove('show');
     });
   }
 
-  // ---------- Scroll Reveal ----------
-  const revealTargets = document.querySelectorAll(
-    '.featured-card, .archive__item, .about__inner, .hero__headline'
-  );
-
-  revealTargets.forEach(function (el) { el.classList.add('reveal'); });
-
-  if ('IntersectionObserver' in window) {
-    const observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.12 });
-
-    revealTargets.forEach(function (el) { observer.observe(el); });
-  } else {
-    revealTargets.forEach(function (el) { el.classList.add('visible'); });
+  // ---------- Today's Date ----------
+  const todayEl = document.getElementById('todayDate');
+  if (todayEl) {
+    const d = new Date();
+    const yy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    todayEl.textContent = `${yy}.${mm}.${dd} · ${weekdays[d.getDay()]}`;
   }
 
-  // ---------- Current Year in Colophon ----------
-  const yearSpan = document.querySelector('[data-current-year]');
-  if (yearSpan) yearSpan.textContent = new Date().getFullYear();
+  // ---------- Diary Count ----------
+  const diaryCountEl = document.getElementById('diaryCount');
+  if (diaryCountEl) {
+    try {
+      const raw = localStorage.getItem('diary-entries');
+      if (raw) {
+        const entries = JSON.parse(raw);
+        diaryCountEl.textContent = entries.length;
+      }
+    } catch {}
+  }
 
-  // ---------- Smooth scroll for anchor links ----------
-  document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
-    anchor.addEventListener('click', function (e) {
-      const target = document.querySelector(this.getAttribute('href'));
+  // ---------- Active Nav ----------
+  const navItems = document.querySelectorAll('.side-nav__item[data-target]');
+  navItems.forEach(item => {
+    item.addEventListener('click', () => {
+      navItems.forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+    });
+  });
+
+  // ---------- Smooth scroll ----------
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const id = a.getAttribute('href');
+      if (id === '#' || id.length < 2) return;
+      const target = document.querySelector(id);
       if (target) {
         e.preventDefault();
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        sidebar?.classList.remove('open');
+        sidebarOverlay?.classList.remove('show');
       }
     });
   });
 
-  // ---------- Active nav link on scroll ----------
-  const sections = document.querySelectorAll('section[id]');
-  const navLinks = document.querySelectorAll('.nav-link');
-
-  function updateActiveNav() {
-    const scrollY = window.pageYOffset + 150;
-    let current = '';
-    sections.forEach(function (section) {
-      if (scrollY >= section.offsetTop) current = section.getAttribute('id');
-    });
-    navLinks.forEach(function (link) {
-      link.classList.remove('active');
-      if (link.getAttribute('href') === '#' + current) link.classList.add('active');
-    });
+  // ---------- Mood rotation (each visit random) ----------
+  const moodEl = document.getElementById('todayMood');
+  if (moodEl) {
+    const moods = ['✨', '🌙', '☕', '🍃', '🐙', '🎮', '📚', '🌈', '🌸', '🎧'];
+    const seed = new Date().getDate();
+    moodEl.textContent = moods[seed % moods.length];
   }
-
-  window.addEventListener('scroll', updateActiveNav, { passive: true });
-  updateActiveNav();
 
 })();
