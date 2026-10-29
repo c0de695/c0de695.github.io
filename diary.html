@@ -69,10 +69,6 @@
     .diary-editor__actions { display: flex; gap: .75rem; justify-content: flex-end; }
     .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-faint); }
     .empty-state__emoji { font-size: 3rem; margin-bottom: 1rem; }
-    .diary-badge-new {
-      font-family: var(--font-mono); font-size: .7rem; background: var(--neon-pink); color: #fff;
-      padding: 2px 8px; border-radius: 10px; margin-left: .5rem;
-    }
 
     @media (max-width: 900px) {
       .diary-layout { grid-template-columns: 1fr; }
@@ -162,88 +158,97 @@
   <script>
     /* ---------- Diary App ---------- */
     (function() {
-      const STORAGE = 'diary-entries';
-      const listEl = document.getElementById('diaryList');
-      const titleInput = document.getElementById('diaryTitle');
-      const contentInput = document.getElementById('diaryContent');
-      const editorTitle = document.getElementById('editorTitle');
-      const saveBtn = document.getElementById('saveBtn');
-      const cancelBtn = document.getElementById('cancelBtn');
-      const newBtn = document.getElementById('newEntryBtn');
-      const diaryCountEl = document.getElementById('diaryCount');
-      const moodBtns = document.querySelectorAll('.mood-btn');
+      var STORAGE = 'diary-entries';
+      var listEl = document.getElementById('diaryList');
+      var titleInput = document.getElementById('diaryTitle');
+      var contentInput = document.getElementById('diaryContent');
+      var editorTitle = document.getElementById('editorTitle');
+      var saveBtn = document.getElementById('saveBtn');
+      var cancelBtn = document.getElementById('cancelBtn');
+      var newBtn = document.getElementById('newEntryBtn');
+      var diaryCountEl = document.getElementById('diaryCount');
+      var moodBtns = document.querySelectorAll('.mood-btn');
 
-      let entries = [];
-      let editingId = null;
-      let selectedMood = '✨';
+      var entries = [];
+      var editingId = null;
+      var selectedMood = '✨';
 
-      // Load
       function load() {
         try { entries = JSON.parse(localStorage.getItem(STORAGE) || '[]'); }
-        catch { entries = []; }
-        entries.sort((a,b) => b.timestamp - a.timestamp);
+        catch (e) { entries = []; }
+        entries.sort(function(a,b) { return b.timestamp - a.timestamp; });
         render();
       }
 
-      function save() { localStorage.setItem(STORAGE, JSON.stringify(entries)); }
+      function persist() { localStorage.setItem(STORAGE, JSON.stringify(entries)); }
 
       function render() {
         diaryCountEl.textContent = entries.length;
         if (entries.length === 0) {
-          listEl.innerHTML = `
-            <div class="empty-state">
-              <div class="empty-state__emoji">📔</div>
-              <p>还没有写过日记呢</p>
-              <p style="font-size:.85rem;margin-top:.5rem">点上面的按钮开始吧～</p>
-            </div>`;
+          listEl.innerHTML = '<div class="empty-state">' +
+            '<div class="empty-state__emoji">📔</div>' +
+            '<p>还没有写过日记呢</p>' +
+            '<p style="font-size:.85rem;margin-top:.5rem">点上面的按钮开始吧～</p></div>';
           return;
         }
-        listEl.innerHTML = entries.map(e => `
-          <div class="diary-item ${e.id === editingId ? 'active' : ''}" data-id="${e.id}">
-            <div class="diary-item__date">${formatDate(e.timestamp)} ${e.mood || ''}</div>
-            <div class="diary-item__title">${escapeHtml(e.title || '(无标题)')}</div>
-            <div class="diary-item__preview">${escapeHtml((e.content || '').substring(0, 80))}</div>
-            <div class="diary-item__actions">
-              <button class="diary-item__del" data-del="${e.id}">删除</button>
-            </div>
-          </div>
-        `).join('');
+        var html = '';
+        for (var i=0; i<entries.length; i++) {
+          var e = entries[i];
+          var active = (e.id === editingId) ? ' active' : '';
+          var preview = (e.content || '').substring(0, 80);
+          html += '<div class="diary-item' + active + '" data-id="' + e.id + '">' +
+            '<div class="diary-item__date">' + formatDate(e.timestamp) + ' ' + (e.mood || '') + '</div>' +
+            '<div class="diary-item__title">' + escapeHtml(e.title || '(无标题)') + '</div>' +
+            '<div class="diary-item__preview">' + escapeHtml(preview) + '</div>' +
+            '<div class="diary-item__actions">' +
+              '<button class="diary-item__del" data-del="' + e.id + '">删除</button>' +
+            '</div></div>';
+        }
+        listEl.innerHTML = html;
 
-        listEl.querySelectorAll('.diary-item').forEach(el => {
-          el.addEventListener('click', e => {
-            if (e.target.hasAttribute('data-del')) {
-              e.stopPropagation();
-              const id = e.target.getAttribute('data-del');
-              if (confirm('确定删除这篇日记吗？')) {
-                entries = entries.filter(x => x.id !== id);
-                save();
-                if (editingId === id) resetEditor();
-                render();
+        var items = listEl.querySelectorAll('.diary-item');
+        for (var j=0; j<items.length; j++) {
+          (function(el) {
+            el.addEventListener('click', function(ev) {
+              var delBtn = ev.target.closest('[data-del]');
+              if (delBtn) {
+                ev.stopPropagation();
+                var id = delBtn.getAttribute('data-del');
+                if (confirm('确定删除这篇日记吗？')) {
+                  var newEntries = [];
+                  for (var k=0; k<entries.length; k++) if (entries[k].id !== id) newEntries.push(entries[k]);
+                  entries = newEntries;
+                  persist();
+                  if (editingId === id) resetEditor();
+                  render();
+                }
+                return;
               }
-              return;
-            }
-            openEditor(el.dataset.id);
-          });
-        });
+              openEditor(el.getAttribute('data-id'));
+            });
+          })(items[j]);
+        }
       }
 
       function formatDate(ts) {
-        const d = new Date(ts);
-        const mm = String(d.getMonth()+1).padStart(2,'0');
-        const dd = String(d.getDate()).padStart(2,'0');
-        const hh = String(d.getHours()).padStart(2,'0');
-        const mi = String(d.getMinutes()).padStart(2,'0');
-        return `${mm}.${dd} ${hh}:${mi}`;
+        var d = new Date(ts);
+        var mm = pad(d.getMonth()+1);
+        var dd = pad(d.getDate());
+        var hh = pad(d.getHours());
+        var mi = pad(d.getMinutes());
+        return mm + '.' + dd + ' ' + hh + ':' + mi;
       }
+      function pad(n) { return n < 10 ? '0' + n : '' + n; }
 
       function escapeHtml(s) {
-        const div = document.createElement('div');
-        div.textContent = s;
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(s));
         return div.innerHTML;
       }
 
       function openEditor(id) {
-        const e = entries.find(x => x.id === id);
+        var e = null;
+        for (var i=0; i<entries.length; i++) if (entries[i].id === id) { e = entries[i]; break; }
         if (!e) return;
         editingId = id;
         editorTitle.textContent = '编辑日记';
@@ -266,47 +271,54 @@
       }
 
       function updateMoodBtns() {
-        moodBtns.forEach(b => {
-          b.classList.toggle('active', b.dataset.mood === selectedMood);
-        });
+        for (var i=0; i<moodBtns.length; i++) {
+          moodBtns[i].classList.toggle('active', moodBtns[i].getAttribute('data-mood') === selectedMood);
+        }
       }
 
-      // Events
-      newBtn?.addEventListener('click', resetEditor);
-      cancelBtn?.addEventListener('click', resetEditor);
+      if (newBtn) newBtn.addEventListener('click', resetEditor);
+      if (cancelBtn) cancelBtn.addEventListener('click', resetEditor);
 
-      moodBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          selectedMood = btn.dataset.mood;
-          updateMoodBtns();
-        });
-      });
+      for (var i=0; i<moodBtns.length; i++) {
+        moodBtns[i].addEventListener('click', (function(btn) {
+          return function() {
+            selectedMood = btn.getAttribute('data-mood');
+            updateMoodBtns();
+          };
+        })(moodBtns[i]));
+      }
 
-      saveBtn?.addEventListener('click', () => {
-        const title = titleInput.value.trim();
-        const content = contentInput.value.trim();
-        if (!title && !content) {
-          alert('写点什么再保存吧～');
-          return;
-        }
-        if (editingId) {
-          const e = entries.find(x => x.id === editingId);
-          if (e) {
-            e.title = title;
-            e.content = content;
-            e.mood = selectedMood;
-            e.timestamp = Date.now();
+      if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
+          var title = titleInput.value.trim();
+          var content = contentInput.value.trim();
+          if (!title && !content) {
+            alert('写点什么再保存吧～');
+            return;
           }
-        } else {
-          entries.unshift({
-            id: 'entry-' + Date.now(),
-            title, content, mood: selectedMood,
-            timestamp: Date.now()
-          });
-        }
-        save();
-        resetEditor();
-      });
+          if (editingId) {
+            for (var i=0; i<entries.length; i++) {
+              if (entries[i].id === editingId) {
+                entries[i].title = title;
+                entries[i].content = content;
+                entries[i].mood = selectedMood;
+                entries[i].timestamp = Date.now();
+                break;
+              }
+            }
+          } else {
+            entries.unshift({
+              id: 'entry-' + Date.now(),
+              title: title,
+              content: content,
+              mood: selectedMood,
+              timestamp: Date.now()
+            });
+          }
+          persist();
+          resetEditor();
+        });
+      }
 
       load();
     })();
