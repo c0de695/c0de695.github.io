@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小游戏 · 纸间札记</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Serif+SC:wght@400;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .games-layout { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+    .game-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      cursor: pointer;
+      transition: all .25s;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .game-card:hover { transform: translateY(-4px); }
+    .game-card__icon { font-size: 3rem; margin-bottom: .75rem; }
+    .game-card__name { font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; }
+    .game-card__desc { font-family: var(--font-mono); font-size: .75rem; color: var(--text-dim); margin-top: .35rem; }
+    .game-card__badge {
+      position: absolute; top: 10px; right: 10px;
+      font-family: var(--font-mono); font-size: .65rem; font-weight: 700;
+      padding: 2px 8px; border-radius: 10px; letter-spacing: .08em;
+    }
+    .badge-live { background: var(--neon-green); color: #0a0e18; }
+    .badge-soon { background: var(--border-thick); color: var(--text-faint); }
+
+    .game-card--snake:hover { border-color: var(--neon-green); }
+    .game-card--tictactoe:hover { border-color: var(--neon-pink); }
+    .game-card--coming { opacity: .6; cursor: not-allowed; }
+
+    /* Game container */
+    .game-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 2rem;
+      margin-top: 1.5rem;
+    }
+    .game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: .75rem; }
+    .game-title { font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; }
+    .game-stats { font-family: var(--font-mono); font-size: .8rem; display: flex; gap: 1rem; color: var(--text-dim); }
+    .game-stats span { color: var(--neon-blue); font-weight: 700; }
+
+    /* Snake */
+    .snake-wrap { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+    #snakeCanvas {
+      background: #0d0917;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      image-rendering: pixelated;
+    }
+    .snake-controls { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: center; }
+    .snake-hint { font-family: var(--font-mono); font-size: .75rem; color: var(--text-faint); text-align: center; }
+
+    /* Tic Tac Toe */
+    .ttt-wrap { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+    .ttt-board {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      width: 280px; height: 280px;
+    }
+    .ttt-cell {
+      background: var(--bg-input);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display);
+      font-size: 3rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .15s;
+      user-select: none;
+    }
+    .ttt-cell:hover:not(.taken) { border-color: var(--neon-blue); }
+    .ttt-cell.x { color: var(--neon-blue); text-shadow: 0 0 15px rgba(110,200,255,.5); }
+    .ttt-cell.o { color: var(--neon-pink); text-shadow: 0 0 15px rgba(255,107,157,.5); }
+    .ttt-cell.win { border-color: var(--neon-yellow); background: rgba(255,217,61,.1); }
+    .ttt-status { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; }
+    .ttt-status.x { color: var(--neon-blue); }
+    .ttt-status.o { color: var(--neon-pink); }
+    .ttt-status.draw { color: var(--neon-yellow); }
+    .ttt-modes { display: flex; gap: .5rem; margin-bottom: .5rem; }
+  </style>
+</head>
+<body class="app">
+
+  <!-- ============ 侧边栏 ============ -->
+  <aside class="sidebar" id="sidebar">
+    <button class="sidebar__close" id="sidebarClose">✕</button>
+    <div class="profile">
+      <div class="profile__avatar"><span class="avatar-emoji">🐙</span></div>
+      <div class="profile__info">
+        <div class="profile__name">纸间札记</div>
+        <div class="profile__tag">一个人的小角落</div>
+      </div>
+    </div>
+    <nav class="side-nav">
+      <a href="index.html" class="side-nav__item"><span class="nav-icon">🏠</span><span class="nav-label">首页</span></a>
+      <a href="index.html#articles" class="side-nav__item"><span class="nav-icon">📖</span><span class="nav-label">文章</span></a>
+      <a href="diary.html" class="side-nav__item"><span class="nav-icon">✍️</span><span class="nav-label">日记</span><span class="nav-badge" id="diaryCount">0</span></a>
+      <a href="#" class="side-nav__item active"><span class="nav-icon">🎮</span><span class="nav-label">小游戏</span></a>
+    </nav>
+    <div class="side-footer">
+      <button class="theme-btn" id="themeToggle"><span class="theme-icon">🌙</span></button>
+    </div>
+  </aside>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- ============ 主内容 ============ -->
+  <main class="main">
+    <header class="topbar">
+      <button class="topbar__menu" id="sidebarToggle">☰</button>
+      <h1 class="topbar__title">🎮 小游戏</h1>
+      <button class="topbar__theme" id="themeToggle2">🌙</button>
+    </header>
+
+    <div class="section-header">
+      <span class="section-num">✦</span>
+      <h3 class="section-title">休息一下？</h3>
+      <span class="section-line"></span>
+    </div>
+
+    <!-- 游戏选择 -->
+    <div class="games-layout" id="gamePicker">
+      <div class="game-card game-card--snake" data-game="snake">
+        <div class="game-card__badge badge-live">LIVE</div>
+        <div class="game-card__icon">🐍</div>
+        <div class="game-card__name">贪吃蛇</div>
+        <div class="game-card__desc">经典像素风</div>
+      </div>
+      <div class="game-card game-card--tictactoe" data-game="ttt">
+        <div class="game-card__badge badge-live">LIVE</div>
+        <div class="game-card__icon">⭕</div>
+        <div class="game-card__name">井字棋</div>
+        <div class="game-card__desc">对战 AI / 双人</div>
+      </div>
+      <div class="game-card game-card--coming">
+        <div class="game-card__badge badge-soon">SOON</div>
+        <div class="game-card__icon">🧩</div>
+        <div class="game-card__name">更多游戏</div>
+        <div class="game-card__desc">敬请期待～</div>
+      </div>
+    </div>
+
+    <!-- 游戏区域 -->
+    <div class="game-container" id="gameContainer" style="display:none"></div>
+
+    <footer class="footer">
+      <div class="footer__pixel">▓ ░ ▒ ▓ ░ ▒ ▓ ░ ▒ ▓ ░ ▒ ▓ ░ ▒ ▓</div>
+      <p class="footer__text">© 2026 纸间札记 · v2.0</p>
+    </footer>
+  </main>
+
+  <script src="script.js"></script>
+  <script>
+    /* ---------- Game Router ---------- */
+    (function() {
+      const picker = document.getElementById('gamePicker');
+      const container = document.getElementById('gameContainer');
+
+      picker.addEventListener('click', e => {
+        const card = e.target.closest('.game-card[data-game]');
+        if (!card) return;
+        const game = card.dataset.game;
+        if (game === 'snake') container.innerHTML = snakeHTML(); initSnake();
+        else if (game === 'ttt') container.innerHTML = tttHTML(); initTTT();
+        else return;
+        container.style.display = 'block';
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+
+      // ===== Snake =====
+      function snakeHTML() {
+        return `
+          <div class="game-header">
+            <div class="game-title">🐍 贪吃蛇</div>
+            <div class="game-stats">
+              分数 <span id="snakeScore">0</span> · 最高 <span id="snakeHigh">0</span>
+            </div>
+          </div>
+          <div class="snake-wrap">
+            <canvas id="snakeCanvas" width="400" height="400"></canvas>
+            <div class="snake-controls">
+              <button class="btn btn--primary" id="snakeStart">▶ 开始 / 重开</button>
+              <button class="btn btn--ghost" id="snakePause">⏸ 暂停</button>
+            </div>
+            <div class="snake-hint">方向键 / WASD 控制 · 空格暂停</div>
+          </div>
+        `;
+      }
+
+      function initSnake() {
+        const canvas = document.getElementById('snakeCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('snakeScore');
+        const highEl = document.getElementById('snakeHigh');
+        const startBtn = document.getElementById('snakeStart');
+        const pauseBtn = document.getElementById('snakePause');
+
+        const GRID = 20;
+        const CELLS = canvas.width / GRID;
+        let snake, dir, nextDir, food, score, running, paused, timer;
+        let high = parseInt(localStorage.getItem('snake-high') || '0');
+        highEl.textContent = high;
+
+        function reset() {
+          snake = [{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+          dir = {x:1,y:0}; nextDir = {x:1,y:0};
+          score = 0; scoreEl.textContent = 0;
+          placeFood();
+          draw();
+        }
+        function placeFood() {
+          do { food = {x:Math.floor(Math.random()*CELLS), y:Math.floor(Math.random()*CELLS)}; }
+          while (snake.some(s => s.x===food.x && s.y===food.y));
+        }
+        function step() {
+          dir = nextDir;
+          const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
+          if (head.x < 0 || head.x >= CELLS || head.y < 0 || head.y >= CELLS ||
+              snake.some(s => s.x===head.x && s.y===head.y)) {
+            gameOver(); return;
+          }
+          snake.unshift(head);
+          if (head.x === food.x && head.y === food.y) { score++; scoreEl.textContent = score; placeFood(); }
+          else snake.pop();
+          draw();
+        }
+        function draw() {
+          ctx.fillStyle = '#0d0917';
+          ctx.fillRect(0,0,canvas.width, canvas.height);
+          // grid
+          ctx.strokeStyle = 'rgba(255,255,255,.03)';
+          for (let i=0;i<CELLS;i++) {
+            ctx.beginPath(); ctx.moveTo(i*GRID,0); ctx.lineTo(i*GRID,canvas.height); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0,i*GRID); ctx.lineTo(canvas.width,i*GRID); ctx.stroke();
+          }
+          // food
+          ctx.fillStyle = '#ff6b9d';
+          ctx.shadowColor = '#ff6b9d'; ctx.shadowBlur = 10;
+          ctx.beginPath(); ctx.arc(food.x*GRID+GRID/2, food.y*GRID+GRID/2, GRID/2-3, 0, Math.PI*2); ctx.fill();
+          ctx.shadowBlur = 0;
+          // snake
+          snake.forEach((s,i) => {
+            const hue = 140 - i * 2;
+            ctx.fillStyle = i === 0 ? '#6ee7b7' : `hsl(${hue}, 60%, 50%)`;
+            ctx.fillRect(s.x*GRID+1, s.y*GRID+1, GRID-2, GRID-2);
+          });
+          // head glow
+          ctx.fillStyle = '#6ee7b7';
+          ctx.shadowColor = '#6ee7b7'; ctx.shadowBlur = 15;
+          ctx.fillRect(snake[0].x*GRID+1, snake[0].y*GRID+1, GRID-2, GRID-2);
+          ctx.shadowBlur = 0;
+        }
+        function gameOver() {
+          running = false; clearInterval(timer);
+          if (score > high) { high = score; localStorage.setItem('snake-high', high); highEl.textContent = high; }
+          // overlay
+          ctx.fillStyle = 'rgba(0,0,0,.7)';
+          ctx.fillRect(0,0,canvas.width, canvas.height);
+          ctx.fillStyle = '#ff6b9d';
+          ctx.font = 'bold 28px Space Grotesk, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('游戏结束', canvas.width/2, canvas.height/2 - 10);
+          ctx.fillStyle = '#e8e0d4';
+          ctx.font = '16px Space Grotesk';
+          ctx.fillText(`得分: ${score}`, canvas.width/2, canvas.height/2 + 20);
+        }
+        function start() {
+          reset(); running = true; paused = false; clearInterval(timer);
+          timer = setInterval(step, 120);
+        }
+
+        startBtn.onclick = start;
+        pauseBtn.onclick = () => {
+          if (!running) return;
+          paused = !paused;
+          if (paused) { clearInterval(timer); pauseBtn.textContent = '▶ 继续'; }
+          else { timer = setInterval(step, 120); pauseBtn.textContent = '⏸ 暂停'; }
+        };
+
+        document.onkeydown = e => {
+          if (!running || paused) { if (e.key === ' ' && running) pauseBtn.onclick(); return; }
+          const k = e.key.toLowerCase();
+          if ((k==='arrowup'||k==='w') && dir.y!==1) nextDir = {x:0,y:-1};
+          else if ((k==='arrowdown'||k==='s') && dir.y!==-1) nextDir = {x:0,y:1};
+          else if ((k==='arrowleft'||k==='a') && dir.x!==1) nextDir = {x:-1,y:0};
+          else if ((k==='arrowright'||k==='d') && dir.x!==-1) nextDir = {x:1,y:0};
+          else if (k===' ') pauseBtn.onclick();
+        };
+        reset();
+      }
+
+      // ===== Tic Tac Toe =====
+      function tttHTML() {
+        return `
+          <div class="game-header">
+            <div class="game-title">⭕ 井字棋</div>
+            <div class="game-stats">
+              <span style="color:var(--neon-blue)">X</span> · <span style="color:var(--neon-pink)">O</span> · <span style="color:var(--text-faint)">平局</span>
+            </div>
+          </div>
+          <div class="ttt-wrap">
+            <div class="ttt-modes">
+              <button class="btn btn--ghost" data-mode="pvp">双人对战</button>
+              <button class="btn btn--primary" data-mode="pve">vs 电脑</button>
+            </div>
+            <div class="ttt-status" id="tttStatus">轮到 X</div>
+            <div class="ttt-board" id="tttBoard">
+              ${Array(9).fill('<div class="ttt-cell"></div>').join('')}
+            </div>
+            <button class="btn btn--ghost" id="tttReset">🔄 再来一局</button>
+          </div>
+        `;
+      }
+
+      function initTTT() {
+        const boardEl = document.getElementById('tttBoard');
+        const statusEl = document.getElementById('tttStatus');
+        const resetBtn = document.getElementById('tttReset');
+        const cells = boardEl.querySelectorAll('.ttt-cell');
+        let board, current, gameOver, mode = 'pve';
+
+        const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+
+        function reset() {
+          board = Array(9).fill('');
+          current = 'X'; gameOver = false;
+          cells.forEach(c => { c.textContent=''; c.className='ttt-cell'; });
+          statusEl.textContent = '轮到 X';
+          statusEl.className = 'ttt-status x';
+        }
+
+        function checkWin(player) {
+          for (const [a,b,c] of wins) {
+            if (board[a]===player && board[b]===player && board[c]===player) return [a,b,c];
+          }
+          return null;
+        }
+
+        function makeMove(i) {
+          if (board[i] || gameOver) return;
+          board[i] = current;
+          const cell = cells[i];
+          cell.textContent = current; cell.classList.add(current.toLowerCase());
+          const win = checkWin(current);
+          if (win) {
+            gameOver = true;
+            win.forEach(idx => cells[idx].classList.add('win'));
+            statusEl.textContent = `🎉 ${current} 赢了！`;
+            statusEl.className = `ttt-status ${current.toLowerCase()}`;
+            return;
+          }
+          if (!board.includes('')) {
+            gameOver = true;
+            statusEl.textContent = '🤝 平局';
+            statusEl.className = 'ttt-status draw';
+            return;
+          }
+          current = current === 'X' ? 'O' : 'X';
+          statusEl.textContent = `轮到 ${current}`;
+          statusEl.className = `ttt-status ${current.toLowerCase()}`;
+          if (mode === 'pve' && current === 'O' && !gameOver) {
+            setTimeout(aiMove, 400);
+          }
+        }
+
+        function aiMove() {
+          if (gameOver) return;
+          // 简单 AI：优先赢 → 阻止 → 中心 → 角落 → 随机
+          let move = null;
+          // 赢
+          for (let i=0;i<9;i++) { if (!board[i]) { board[i]='O'; if (checkWin('O')) { board[i]=''; move=i; break; } board[i]=''; } }
+          // 阻止
+          if (move === null) for (let i=0;i<9;i++) { if (!board[i]) { board[i]='X'; if (checkWin('X')) { board[i]=''; move=i; break; } board[i]=''; } }
+          if (move === null && !board[4]) move = 4;
+          if (move === null) {
+            const corners = [0,2,6,8].filter(i=>!board[i]);
+            if (corners.length) move = corners[Math.floor(Math.random()*corners.length)];
+          }
+          if (move === null) {
+            const empty = board.map((v,i)=>v?null:i).filter(v=>v!==null);
+            move = empty[Math.floor(Math.random()*empty.length)];
+          }
+          makeMove(move);
+        }
+
+        cells.forEach((c,i) => c.onclick = () => makeMove(i));
+        resetBtn.onclick = reset;
+        document.querySelectorAll('.ttt-modes button').forEach(b => {
+          b.onclick = () => {
+            mode = b.dataset.mode;
+            document.querySelectorAll('.ttt-modes button').forEach(x => {
+              x.className = x.dataset.mode === mode ? 'btn btn--primary' : 'btn btn--ghost';
+            });
+            reset();
+          };
+        });
+        reset();
+      }
+    })();
+  </script>
+</body>
+</html>
